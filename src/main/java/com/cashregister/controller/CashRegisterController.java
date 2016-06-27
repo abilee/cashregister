@@ -3,16 +3,13 @@ package com.cashregister.controller;
 import com.cashregister.exceptions.InvalidInputException;
 import com.cashregister.model.Money;
 
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * Controller to put, take, change, and show denominations and counts in cash register
@@ -48,59 +45,80 @@ public class CashRegisterController {
     }
 
     public String change(Integer total) throws InvalidInputException {
-        NavigableMap<Money, Integer> denominations = createDenominations();
-        //Fetch possible denomination combinations
-        List<NavigableMap<Money, Integer>> possibleDenominations  = possibleStacks(null, denominations, total);
-        Optional<NavigableMap<Money, Integer>> result = possibleDenominations.stream().filter(combination ->  {
-            return total == combination.entrySet().stream().mapToInt(
-                    (entry) -> (entry.getValue() * entry.getKey().getValue())).sum();
-        }).findAny();
-        if (result.isPresent()) {
-            NavigableMap<Money, Integer> changeMap = result.get();
-            take(changeMap);
-            NavigableMap<Money, Integer> results = this.createDenominations();
-            results.putAll(changeMap);
-            return show(results, false);
-        } else {
-            throw new InvalidInputException("Sorry, cannot find a valid change in the cash register");
+        NavigableMap<Money, Integer> results = this.createDenominations();
+        boolean result = change(total, results);
+        if(result) {
+            NavigableMap<Money, Integer> denominations = this.createDenominations();
+            denominations.putAll(results);
+            this.take(denominations);
+            return this.show(denominations, false);
         }
+        throw new InvalidInputException("Combination of currencies not found in register");
     }
 
-    public List<NavigableMap<Money, Integer>> possibleStacks(List<NavigableMap<Money,Integer>> preStacks, NavigableMap<Money, Integer> currencies, int total) {
+    /**
+     * Change - Match with splits in highest denomination. If not, follow up the next lower denomination.
+     * @param total
+     * @param results
+     * @return
+     * @throws InvalidInputException
+     */
+    public boolean change(Integer total, NavigableMap<Money, Integer> results) throws InvalidInputException {
 
-        int preStackSize ;
-        List<NavigableMap<Money,Integer>> results = new ArrayList();
-        if (currencies == null || currencies.size() == 0 || total == 0) {
-            return preStacks;
+        if (total == 0) {
+            return true;
         }
-
-        //Base Case
-        if (preStacks == null || preStacks.size() == 0) {
-            Money money = getHighestDenomination(total);
-            currencies = currencies.subMap(money, true, currencies.lastKey(), true);
-
-            int counts = currency.get(money);
-            IntStream.rangeClosed(0,counts).forEachOrdered(  x -> {
-                    NavigableMap<Money, Integer> possibleDenominations = new TreeMap();
-                    possibleDenominations.put(money, x);
-                    results.add(possibleDenominations);
-            });
-            currencies.remove(money);
-        } else {
-            preStackSize = preStacks.size();
-            Money money = currencies.firstKey();
-            int counts = currency.get(money);
-            IntStream.range(0, preStackSize).forEachOrdered( i -> {
-                    IntStream.rangeClosed(0, counts).forEachOrdered( j -> {
-                        NavigableMap<Money,Integer> possibleDenominations = new TreeMap();
-                        possibleDenominations.putAll(preStacks.get(i));
-                        possibleDenominations.put(money, j);
-                        results.add(possibleDenominations);
-                    });
-            });
-            currencies.remove(money);
+        Money highestDenomination = getHighestDenomination(total);
+        if (highestDenomination == null) {
+            return false;
         }
-        return possibleStacks(results, currencies, total); //possible combinations for next denomination
+        int countInRegister = currency.get(highestDenomination) - results.get(highestDenomination);
+        int splitNeeded = total/highestDenomination.getValue();
+        int currencyValue = highestDenomination.getValue();
+        //Base case when a denomination can equal total value
+        if (total == splitNeeded * currencyValue && splitNeeded <= countInRegister) {
+            results.put(highestDenomination, splitNeeded);
+            return true;
+        }
+        boolean result = false;
+        if (splitNeeded <=countInRegister) { //Try highest currency denomination that fits the total
+            result = tryChangeWithDenomination(total, highestDenomination, results);
+        }
+        if (!result) { // If not, try next lower denomination
+            Money nextDenomination = currency.higherKey(highestDenomination);
+            return tryChangeWithDenomination(total, nextDenomination, results);
+        }
+        return result;
+
+    }
+
+    /**
+     * Try different splits starting within a currency denomination
+     */
+    private boolean tryChangeWithDenomination(int total, Money denomination, NavigableMap<Money, Integer> results) throws InvalidInputException {
+        if (denomination == null) {
+            return false;
+        }
+        int denominationCount = currency.get(denomination) - results.get(denomination);
+        int denominationValue = denomination.getValue();
+        int neededSplit = total/denominationValue;
+
+        int splitCounter = neededSplit > denominationCount? denominationCount : neededSplit;
+        boolean result = false;
+        for (int count = splitCounter; count > 0; count--) {
+            try {
+                results.put(denomination, count);
+                int currencyValue = denomination.getValue();
+                result = change(total - (count) * currencyValue, results);
+                if (result) {
+                    break;
+                }
+            } catch (InvalidInputException e) {
+                //Handle exception and continue with the next combination
+                e.printStackTrace();
+            }
+        }
+        return result;
     }
 
     public Money getHighestDenomination(int total) {
@@ -108,7 +126,7 @@ public class CashRegisterController {
                 .filter(
                         x -> x.getValue() <=total &&
                                 currency.get(x) > 0).max(Comparator.comparing(Money::getValue));
-        return maxMoney.isPresent() ?  maxMoney.get() : Money.twenty();
+        return maxMoney.isPresent() ?  maxMoney.get() : null;
     }
 
     public int getTotal() {

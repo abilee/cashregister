@@ -11,6 +11,7 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  *
@@ -81,8 +82,7 @@ public class CashRegisterControllerTest {
     }
 
     @Test
-    public void testChangeMoney() throws InvalidInputException {
-
+    public void testChangeMoneyThirtyOne() throws InvalidInputException {
         TreeMap<Money, Integer> inputThird = new TreeMap<Money, Integer>();
         inputThird.put(Money.twenty(), 1);
         inputThird.put(Money.ten(), 0);
@@ -91,14 +91,30 @@ public class CashRegisterControllerTest {
         inputThird.put(Money.one(), 0);
 
         controller.put(inputThird);
-
-        NavigableMap<Money, Integer> inputFourth = controller.createDenominations();
-        List<NavigableMap<Money, Integer>> results = controller.possibleStacks(new ArrayList(), inputFourth, 11);
-        /*for (NavigableMap<Money,Integer> resultVals : results) {
-            resultVals.entrySet().stream().forEachOrdered((e) -> System.out.print( " " + e.getValue()));
-            System.out.println("");
-        }*/
-        assertEquals(20, results.size());
+        String output = controller.change(31);
+        assertEquals("1 0 1 3 0", output);
     }
+
+    @Test
+    public void testChangeZeroOneTwo() throws InvalidInputException {
+
+        TreeMap<Money, Integer> inputThird = new TreeMap<Money, Integer>();
+        inputThird.put(Money.twenty(), 1);
+        inputThird.put(Money.ten(), 0);
+        inputThird.put(Money.five(), 3);
+        inputThird.put(Money.two(), 4);
+        inputThird.put(Money.one(), 4);
+        controller.put(inputThird);
+        String output = controller.change(0);
+        assertEquals("0 0 0 0 0", output);
+
+        String output2 = controller.change(1);
+        assertEquals("0 0 0 0 1", output2);
+
+        String output3 = controller.change(2);
+        assertTrue("0 0 0 1 0".equalsIgnoreCase(output3));
+    }
+
+
 
 }
