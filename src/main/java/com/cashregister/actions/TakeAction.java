@@ -28,7 +28,7 @@ public class TakeAction extends BaseParser implements Action {
 
     public void validate(String input) throws ValidatorException {
         //take 1 3 4 5 6
-        boolean validated = input.toLowerCase().trim().matches("take \\d+ \\d+ \\d+ \\d+ \\d+");
+        boolean validated = input.toLowerCase().trim().matches(Action.TAKE+" \\d+ \\d+ \\d+ \\d+ \\d+");
         if (! validated) {
             throw new ValidatorException("Incorrect format: " + input + " ; Correct format : take num20 num10 num5 num2 num1");
         }

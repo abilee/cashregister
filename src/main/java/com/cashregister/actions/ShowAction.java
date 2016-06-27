@@ -23,7 +23,7 @@ public class ShowAction implements Action, InputValidator {
 
     @Override
     public void validate(String input) throws ValidatorException {
-        boolean validated = input.toLowerCase().trim().equals("show");
+        boolean validated = input.toLowerCase().trim().equals(Action.SHOW);
         if (!validated) {
             throw new ValidatorException("Incorrect format: " + input + " ; Correct input: show");
         }

@@ -30,7 +30,7 @@ public class ChangeAction implements Action, InputValidator {
 
     @Override
     public void validate(String input) throws ValidatorException {
-        boolean validated = input.toLowerCase().trim().matches("change \\d+");
+        boolean validated = input.toLowerCase().trim().matches(Action.CHANGE+" \\d+");
         if (!validated) {
             throw new ValidatorException("Incorrect format: " + input + "; Correct format: change value ");
         }
