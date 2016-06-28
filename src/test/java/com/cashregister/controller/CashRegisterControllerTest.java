@@ -115,6 +115,22 @@ public class CashRegisterControllerTest {
         assertTrue("0 0 0 1 0".equalsIgnoreCase(output3));
     }
 
+    @Test
+    public void testChangeTwentyOne() throws InvalidInputException {
+
+        TreeMap<Money, Integer> inputThird = new TreeMap<Money, Integer>();
+        inputThird.put(Money.twenty(), 0);
+        inputThird.put(Money.ten(), 1);
+        inputThird.put(Money.five(), 4);
+        inputThird.put(Money.two(), 4);
+        inputThird.put(Money.one(), 1);
+        controller.put(inputThird);
+        String output = controller.change(21);
+        assertEquals("0 1 2 0 1", output);
+
+
+    }
+
 
 
 }
